@@ -957,7 +957,7 @@ func helper(ctx context.Context) <-chan *callResponse {
 	go func() {
 		resp, err := http.Get("https://jsonplaceholder.typicode.com/todos/1")
 
-		if err != nil {
+		if err != nil { //null
 			respChan <- &callResponse{nil, fmt.Errorf("error in http call")}
 			return
 		}
@@ -984,6 +984,7 @@ func helper(ctx context.Context) <-chan *callResponse {
 }
 
 // HTTP 응답을 가져오는 함수
+// select-case
 func getHTTPResponse(ctx context.Context) (*response, error) {
 	select {
 	case <-ctx.Done():
