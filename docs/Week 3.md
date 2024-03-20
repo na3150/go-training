@@ -922,8 +922,6 @@ finished job id: 20
 
 ## Example 30 : Context timeout
 
-### answer
-
 `main.go`
 
 ```go
@@ -945,14 +943,16 @@ type response struct {
 	Completed bool   `json:"completed"`
 }
 
-type callResponse struct {
-	Resp *response
+type callResponse struct { //구조체: callResponse 구조체는 HTTP 호출의 결과를 저장
+	Resp *response //응답과 오류를 저장하는 포인터
 	Err  error
 }
 
+//비동기 HTTP 요청을 보내는 함수 
+//채널을 반환하며, 응답 또는 오류가 준비되면 채널에 값을 전송
 func helper(ctx context.Context) <-chan *callResponse {
 
-	respChan := make(chan *callResponse, 1)
+	respChan := make(chan *callResponse, 1) //포인터를 받는 버퍼 크기가 1인 채널을 생성
 
 	go func() {
 		resp, err := http.Get("https://jsonplaceholder.typicode.com/todos/1")
@@ -962,8 +962,8 @@ func helper(ctx context.Context) <-chan *callResponse {
 			return
 		}
 
-		defer resp.Body.Close()
-		byteResp, err := ioutil.ReadAll(resp.Body)
+		defer resp.Body.Close()//응답 바디를 닫는다
+		byteResp, err := ioutil.ReadAll(resp.Body)//응답 바디의 내용을
 
 		if err != nil {
 			respChan <- &callResponse{nil, fmt.Errorf("error in reading response")}
@@ -983,6 +983,7 @@ func helper(ctx context.Context) <-chan *callResponse {
 	return respChan
 }
 
+// HTTP 응답을 가져오는 함수
 func getHTTPResponse(ctx context.Context) (*response, error) {
 	select {
 	case <-ctx.Done():
@@ -1006,9 +1007,28 @@ func main() {
 }
 ```
 
- 
+2. Go 실행
 
+```bash
+go run main.go
+```
 
+```bash
+err context timeout, ran out of time%    
+```
+
+- JSONPlaceholder에서 데이터를 가져오는 데 1밀리초보다 더 많은 시간이 걸릴 것
+- 따라서 타임아웃이 발생하여 컨텍스트가 종료되고, 이로 인해 "context timeout, ran out of time"이라는 오류가 발생
+
+- `response` 구조체: JSON 응답을 파싱하여 필드별로 값을 저장하는 구조체
+
+- `callResponse` 구조체: HTTP 호출의 결과를 저장하는 구조체로, 응답과 오류를 포인터로 저장
+
+- `helper` 함수: 비동기적으로 HTTP 요청을 보내고 응답을 처리하는 함수입니다. HTTP 요청 결과를 채널을 통해 반환하며, 채널에는 응답이나 오류를 저장한 `callResponse` 구조체의 포인터가 전송
+
+- `getHTTPResponse` 함수: 주어진 컨텍스트를 사용하여 HTTP 응답을 가져오는 함수, 이 함수는 `helper` 함수의 결과를 기다리고, 컨텍스트 타임아웃 또는 응답이 도착할 때까지 대기
+
+- `main` 함수: 프로그램의 진입점으로, 1밀리초 동안의 타임아웃을 가진 컨텍스트를 생성하고 HTTP 응답을 가져와서 출력
 
 
 
